@@ -1,0 +1,48 @@
+Exercise 6.1
+ Bookmark this page
+In this exercise, you will use an AWS CloudFormation template to create AWS resources. When the template completes, you will have an S3 bucket containing static resources and an EC2 instance with an application configured. The supplied template is using custom resources to insert custom provisioning logic into the template.
+
+To begin, follow the steps below.
+
+1. Download and launch the sample template.
+In this section, you will download the sample template to your local computer and launch a new stack with the template. Follow the steps below. If you are familiar with AWS CloudFormation, you may want to attempt to complete this section by using the properties below before reading the step-by-step instructions.
+
+Region: Oregon (us-west-2) 
+AWS CloudFormation template: Download template 
+Name of the stack: edx-custom-resources 
+KeyName: an EC2 keypair - used only for SSH debugging
+
+Expand for step-by-step instructions.
+2. Inspect the AWS CloudFormation template.
+In this section, you will inspect the application created by the edx-custom-resources stack. You will review the AWS CloudFormation template used to create the resources.
+
+In the console, return to the AWS CloudFormation dashboard
+.
+Check the checkbox for edx-custom-resources.
+Click the Outputs tab, and then click the hyperlink in the WebsiteURL value
+Observe the application that has been created with the AWS CloudFormation template. In the next section, you will look at the resources used to create the application.
+Your application has been built with multiple resources: An EC2 instance for compute and an S3 bucket for storage or static resources. Open the template.yaml in a local editor. The tables below describe the purpose of each section of the template. The AWS documentation has more details on the template anatomy at Template Anatomy
+
+Section - Parameters
+The Parameters section is used to pass values to your template at runtime (when you create or update a stack).
+KeyName	When you launch the template, this is used to select a key pair. This parameter is referenced in the WebInstance resource.
+Section - Resources
+The Resources section specifies the stack resources and their properties. This is the infrastructure you are building.
+StaticBucket, StaticBucketPolicy	StaticBucket is an S3 bucket. StaticBucketPolicy is the associated bucket policy to allow public access
+AMIInfo, AMIInfoFunction, AMIInfoRole	AMIInfo is a custom resource that uses your own logic and the Amazon EC2 APIs to find the most recent Linux AMI. See the AWS documentation for more details on custom resources: Custom Resources. AMIInfoFunction is the Lambda function that contains the Python code to implement the logic. AMIInfoRole is an IAM role used to authenticate the requests to the Amazon EC2 APIs from the AMIInfoFunction Lambda function.
+PopulateS3, PopulateS3Function, PopulateS3Role	PopulateS3 is a custom resource used to populate the StaticBucket. Note that this has properties for SourceZip and DestinationBucket. PopulateS3Function is the Lambda function that implements PopulateS3. This Python code is downloading the zip file specified in SourceZip and delivering the contents to DestinationBucket.
+WebServerSG, WebInstance	WebInstance is the EC2 instance hosting an Apache webserver. A script in the UserData property installs and configures an Apache webserver. WebServerSG is the security group that allows connections to port 80 of the WebInstance.
+Outputs
+Outputs are values that are returned whenever you view your stack's properties.
+WebsiteURL	The template uses the ref intrinsic function to return the PublicDnsName of the WebInstance.
+3. Delete the resources.
+In this section, you will delete the resources created by the AWS CloudFormation template. First you will delete the contents of the S3 bucket. Then you can delete the edx-custom-resources AWS CloudFormation stack.
+
+In the Console, click Services, then click S3 to open the Amazon S3 dashboard.
+Select the row for the bucket created in this exercise. The bucket name will begin with edx-custom-resources-staticbucket.
+Click Empty Bucket. AWS CloudFormation will not delete a bucket that contains objects.
+You will be prompted to type the name of the bucket to confirm. Enter the bucket name, and click Confirm.
+In the console, click Services, then click CloudFormation to open the AWS CloudFormation dashboard.
+Check the checkbox for edx-custom-resources.
+Click Actions -> Delete Stack at the top.
+Click Yes, Delete.

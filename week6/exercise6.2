@@ -1,0 +1,105 @@
+Exercise 6.2
+ Bookmark this page
+In this exercise, you are provided a non-working AWS CloudFormation template. The template creates a database migration application, but there are a few places were the application won't function.
+
+You will be guided through the series of challenges to fix the template errors, which will fix errors in the application. Each challenge is solved by making an update to the template and updating your AWS CloudFormation stack.
+
+There are clues in the expandable sections for each challenge. The challenges are drawn from exercises, lessons, and the self study in this course series. This exercise does not supply detailed step-by-step instructions as part of the challenge. We encourage you to try to fix the issues before expanding the clues.
+
+1. Update the Auto Scaling Group DesiredCapacity.
+In the exercise introduction video, Sean and Russell provided the answer for the first template fix. Download the template challenge template. Open the template in a local editor and locate the auto scaling group DesiredCapacity setting. 
+
+  WebServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: [!Ref 'PublicSubnet1', !Ref 'PublicSubnet2']
+      LaunchConfigurationName: !Ref 'LaunchConfig'
+      MinSize: '0'
+      MaxSize: '5'
+      DesiredCapacity: '0'
+      TargetGroupARNs: [ !Ref 'DefaultTargetGroup' ]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+The template will fail to run with the current settings. Update DesiredCapacity to 1, and create a new AWS CloudFormation stack with the updated template in the us-west-2 region. You will be prompted for DBInstanceMasterPassword and KeyName parameters. Note the DBInstanceMasterPassword passwords can only be any printable ASCII character except "/", """, or "@", and must contain 8 to 41 characters. Select an EC2 key pair you have access to. This is used to configure an authorized key for SSH access to the EC2 instance.
+
+The stack should take about 10 minutes to complete. View the stack outputs in the AWS CloudFormation console. Visit the URL in the Website output. It might take a few more minutes for the instance to register with the ALB.
+
+You will see three steps to perform the database migration. When you attempt the first step to Test RDS connection you will see the error below.
+
+_mysql_connector.MySQLInterfaceError: Can't connect to MySQL server on...
+(As an aside - there are very good reasons why you wouldn't display a stack trace in production code. See the OWASP article on improper error handling.)
+
+The remainder of this exercise will be updating the challenge.yaml locally and updating the AWS CloudFormation stack.
+
+2. Investigate, Fix, Update, Repeat.
+Test RDS connection - _mysql_connector.MySQLInterfaceError
+Clue 1
+Your EC2 instance says it cannot connect to the RDS database. This could be a network issue. What feature of AWS would you use as a virtual firewall to control network traffic?
+
+Clue 2
+You appear to be having a problem with security groups. Which security group is the RDS database using? Do the rules look correct?
+
+Solution
+Locate the DBSecurityGroup. Change the port numbers from 3333 to 3306, which is the port MySQL uses by default in Amazon RDS. 
+
+  SecurityGroupIngress:
+    - IpProtocol: tcp
+      FromPort: '3306'
+      ToPort: '3306'
+Test DynamoDB connection - botocore.exceptions.ClientError: An error occurred (AccessDeniedException) when calling the Scan operation
+Clue 1
+The Dynamo exception tells you that the code on the instance doesn't have permission perform the Scan operation. What feature of Amazon EC2 can be used by the Boto SDK to authenticate this request?
+
+Clue 2
+Your EC2 instance has an associated IAM role. Roles have policies - is there something in the policy that isn't right?
+
+Solution
+Locate the RootRole. Change the action dynamodb:Can to dynamodb:Scan. 
+
+  Statement:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:BatchWriteItem
+      Resource: '*'
+Migrate Records - botocore.errorfactory.ProvisionedThroughputExceededException: An error occurred (ProvisionedThroughputExceededException)
+Clue 1
+ProvisionedThroughputExceededException what feature of a DynamoDB is provisioned at creation time?
+
+Clue 2
+When you look at the DynamoDB table in the console, there is a Metrics tab. Do you see anything going wrong?
+
+
+
+Solution
+Locate the DynamoCustomers. Increase the WriteCapacityUnits to 5. 
+
+  DynamoCustomers:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 5
+You are done!
+You have migrated the RDS MySQL database rows to DynamoDB. Yet the web application doesn't quite look right. Maybe there's a secret challenge?
+
+3. Delete the resources.
+In this section, you will delete the resources created by the AWS CloudFormation template. First you will delete the contents of the S3 bucket. Then you can delete the challenge exercise AWS CloudFormation stack.
+
+In the Console, click Services, then click S3 to open the Amazon S3 dashboard.
+Select the row for the bucket created in this exercise. The bucket name will contain with staticbucket.
+Click Empty Bucket. AWS CloudFormation will not delete a bucket that contains objects.
+You will be prompted to type the name of the bucket to confirm. Enter the bucket name, and click Confirm.
+In the console, click Services, then click CloudFormation to open the AWS CloudFormation dashboard.
+Check the checkbox for the challenge exercise stack.
+Click Actions -> Delete Stack at the top.
+Click Yes, Delete.

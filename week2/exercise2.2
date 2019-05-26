@@ -1,0 +1,115 @@
+Exercise 2.2
+ Bookmark this page
+In this exercise, you will create an Amazon ElastiCache for Memcached cluster and verify the benefits of using a managed caching service. You can use caching to reduce latency for many read-heavy applications, such as Q&A portals, gaming, media sharing, and social networking. In this exercise, you will cache the results of an API by using ElastiCache for Memcached.
+
+To begin, follow the steps below.
+
+1. Create a security group.
+In this section, you will create a security group for the ElastiCache cluster. In a subsequent section, you will place the ElastiCache cluster inside the security group.
+
+In the AWS Management Console, click Services, then click EC2 to open the Amazon EC2 dashboard.
+In the left side navigation menu, under NETWORK & SECURITY, click Security Groups.
+Click Create Security Group.
+For Security group name, type cache-sg
+For Description, type cache-sg
+For VPC, keep the default VPC selection. Make a note of the VPC ID for later use.
+Click Create.
+2. Create an ElastiCache cluster.
+In this section, you will create an ElastiCache for Memcached cluster.
+
+In the AWS Management Console, click Services, then click ElastiCache to open the ElastiCache dashboard.
+In the left side navigation menu, click Memcached.
+Click Create.
+For Cluster engine, choose the Memcached option.
+For Name, type pricing-cache
+For Node type, select Instance family as t2 and select the cache.t2.micro node type. This node type is free-tier eligible.
+Click Save.
+Leave the rest of the default settings and expand the Advanced Memcached settings section.
+For Subnet group, keep the Create new option.
+For Name, type cache-subnet-group
+For Description, type cache-subnet-group
+For VPC ID, make sure that the selected VPC ID is same as the one you noted in the previous section.
+For Subnets, select a subnet from the list.
+For Security groups, select cache-sg and deselect the default security group.
+Leave the rest of the default settings and click Create. It takes about 7 to 8 minutes for the ElastiCache cluster to finish creating.
+Once the cluster is created, click the pricing-cache hyperlink.
+Make a note of the node endpoint under the Endpoint column. The endpoint is similar to: pricing-cache.it51az.0001.usw2.cache.amazonaws.com.
+Make a note of the node port under the Port. The default port is 11211.
+3. Modify the security group to allow AWS Cloud9 instance to connect to the cluster port.
+In the AWS Management Console, click Services, then click EC2 to open the Amazon EC2 dashboard.
+In the left side navigation menu, under NETWORK & SECURITY, click Security Groups.
+Select the cache-sg security group.
+Click the Inbound tab at the bottom.
+Click Edit.
+In the Port Range textbox, delete the existing number and paste the ElastiCache cluster port you copied in the previous section.
+In the Source textbox, type edXOptimizing and select the security group that appears. This is the security group of your AWS Cloud9 instance.
+You have successfully modified the security group to allow the AWS Cloud9 instance to connect to the ElastiCache cluster.
+
+4. Download a sample application and test the ElastiCache cluster.
+In this section, you will download a sample application which displays the prices of Amazon EC2 instances based on the instance type. Then you will repeatedly query a particular combination and test how caching affects the application performance. Follow the steps below.
+
+In your AWS Cloud9 environment, run the command below to download the zip file containing the sample application.
+wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADO/v1.0.0/exercises/ex-elasticache.zip -O ~/ex-elasticache.zip
+
+Unzip the file by running the commands below.
+
+cd ~/environment
+unzip ~/ex-elasticache.zip
+To install the requirements for the application, run the command below.
+sudo pip-3.6 install -r ex-elasticache/FlaskApp/requirements.txt
+
+Open the ex-elasticache/FlaskApp/application.py file from the left side tree view and explore the code. Observe that, in the instance_info route, a Boto3 client for the Price List Service API gets the pricing details for an instance type. If the pricing details are not found in the Memcached client, the method adds the pricing details to the Memcached cluster.
+To run the application, select the application.py file in the left side tree view and click Run -> Run With -> Python3 in the top menu bar.
+You should see an error message similar to - KeyError: 'MEMCACHED_HOST'. This means you need to configure the environment variable for the ElastiCache node endpoint.
+Click the ENV button at the right side in the bottom pane as shown in the screenshot below. 
+
+In the Name textbox, type MEMCACHED_HOST
+In the Value textbox, paste the ElastiCache node endpoint you copied in an earlier section. 
+Important: Make sure you delete any white spaces that were inserted during the copy/paste.
+Click the Run button at the left side of the bottom pane. You should see a message like below.
+Running on http://0.0.0.0:8080/
+
+The application is now running successfully.
+To view the application, click Preview -> Preview Running Application at the top as shown in the screenshot below. You should see the application load in a small window at the bottom. 
+
+To pop out the application in a new browser tab, click the pop-out button as shown in the screenshot below. The application now opens up in a new browser tab. 
+
+The application gives you the price for the Linux Amazon EC2 instance for the region us-east-1 based on the instance type you select. Click an instance type to view the pricing for that instance. You should see the pricing details at the bottom.
+Scroll down to the bottom. You should see a sequence diagram of how the application caches the results. As you can see, for the first time you will get a cache miss, as shown in the screenshot below. This is because the application checks whether the pricing details for the instance type you selected are present in the cache. Since there is nothing in the cache, the application queries the Price List Service API to fetch the results. You can also see the time taken by the application to fetch the pricing results. The application then caches the results for 60 seconds for subsequent requests. 
+
+Click the same instance type again. You may not see any difference in the time taken for this request.
+Immediately, again click the same instance type and scroll down to the bottom. If you clicked again within 60 seconds, you will notice that there was a cache hit as shown in the screenshot below. This means the pricing details were picked up from the ElastiCache cluster. 
+
+To observe the cluster metrics, go to the ElastiCache dashboard.
+Click Memcached at the left side.
+Click the pricing-cache hyperlink.
+Select the cluster node. You should see the metrics details at the bottom. Scroll through the metrics and observe the different metrics, such as Current Connections, Get Hits, Get Misses, New Items, etc.
+Feel free to play around with the application with other instance types and observe how the metrics change. You have successfully implemented caching for your application using ElastiCache for Memcached cluster.
+Optional Challenge 1
+In the first course, Building on AWS, you configured AWS X-Ray to profile an application. Can you configure X-Ray for this exercise to trace the API requests and compare performance?
+
+Optional Challenge 2
+In exercise 1.1 you created and ran a Docker container. Can you use this knowledge to Dockerize this application? First you'll need to create a Dockerfile. The ex-ecs/FrontEnd/Dockerfile from exercise 1.1 can be repurposed for this Python Flask application.
+
+Next create a Docker image with the docker build command. Lastly run the new image with docker run. Remember the Python application requires a MEMCACHED_HOST envionment variable configured.
+
+The requests to the Price List Service API need to be authenticated. When you are running the Python application on your Cloud9 instance Boto 3 is accessing the credentials in the shared credential file ~/.aws/credentials. See more about Boto 3 credentials in the documentation at Configuring Credentials. Using bind mounts of Docker you can make the credentials on your host available inside your container. See the example below: 
+
+docker run -it \
+-v /home/ec2-user/.aws:/root/.aws \
+-e MEMCACHED_HOST=pricing-cache.random.0001.usw2.cache.amazonaws.com \
+-p 8080:8080 \
+image-name
+5. Delete the resources created for this exercise.
+In this section, you will delete the ElastiCache cluster and the security group associated with it. Follow the steps below.
+
+Delete the ElastiCache cluster.
+Open the ElastiCache dashboard and click Memcached in the left side navigation menu.
+Select the pricing-cache cluster by selecting the checkbox.
+Click Delete at the top.
+Click Delete on the prompt message. It takes about 5 minutes for the cluster to get deleted.
+Wait for the cluster to be deleted before proceeding to the next section to delete the security group.
+Delete the security group for the cluster.
+Open the EC2 dashboard and click Security Groups under NETWORK & SECURITY in the left side navigation menu.
+Select the cache-sg security group from the list and click Actions -> Delete Security Group at the top.
+Click Yes, Delete on the prompt message.

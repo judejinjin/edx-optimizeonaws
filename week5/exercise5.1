@@ -1,0 +1,193 @@
+Exercise 5.1
+ Bookmark this page
+In this exercise, you will work with AWS IAM roles to understand their use case. You will create an Amazon S3 bucket and attach an IAM policy to the edXOptimizingUser that denies permission to the IAM user edXOptimizingUser to delete the bucket. Say there comes a time when you need to delete the bucket. Because the IAM user edXOptimizingUser does not have the permission to delete the bucket, you will create an IAM role with a policy that allows the user to delete the bucket. You will then assume the IAM role temporarily for deleting the bucket. By using IAM roles, you are delegating access to users, applications, or services that don't normally have access to your AWS resources. 
+You will also learn how to create a trust policy in which you define who is allowed to assume the role. As you have learnt in the lecture, an AWS IAM role can be assumed by anyone who needs it. Also, a role does not have standard long-term credentials (password or access keys) associated with it. Instead, if a user assumes a role, temporary security credentials are created dynamically and provided to the user. You will use the AWS CLI to perform the steps in the exercise.
+
+The diagram below shows the resources and relationships you create in this exercise. The exercise will refer back to this diagram as the relationships between resources are created.
+
+
+
+To begin, follow the steps below.
+
+1. Create an IAM policy to deny bucket deletion.
+In this section, you will create an IAM policy that denies permission to delete S3 buckets starting with edx-. In a subsequent section, you will attach this policy to the IAM user edXOptimizingUser.
+
+In the AWS Management Console, click Services, then click IAM to open the IAM dashboard.
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the left navigation menu, click Policies.
+Click Create policy.
+Click the JSON tab.
+In the editor textbox, completely replace the sample policy with the following.
+   {
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "ExplicitlyDenyBucketDeletion",
+    "Effect": "Deny",
+    "Action": [
+      "s3:DeleteBucket"
+    ],
+    "Resource": [
+      "arn:aws:s3:::edx-*"
+    ]
+  }]
+}
+Click Review Policy.
+For Name, type DenyBucketDeletionPolicy
+Click Create policy.
+In the Search textbox at the top, type DenyBucketDeletionPolicy and click the hyperlink for DenyBucketDeletionPolicy to open the policy details.
+Make a note of the Policy ARN at the top. You will use the policy ARN in a subsequent section.
+2. Create an IAM policy to allow bucket deletion.
+In this section, you will create an IAM policy that allows permission to delete S3 buckets starting with edx-. In a subsequent section, you will attach this policy to an IAM role, and IAM user edXOptimizingUser will assume that role.
+
+In the IAM dashboard, click Policies in the left navigation menu.
+Click Create policy.
+Click the JSON tab.
+In the editor textbox, completely replace the sample policy with the following.
+   {
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "ExplicitlyAllowBucketDeletion",
+    "Effect": "Allow",
+    "Action": [
+      "s3:DeleteBucket"
+    ],
+    "Resource": [
+      "arn:aws:s3:::edx-*"
+    ]
+  }]
+}
+Click Review Policy.
+For Name, type AllowBucketDeletionPolicy
+Click Create policy.
+In the Search textbox at the top, type AllowBucketDeletionPolicy and click the hyperlink for AllowBucketDeletionPolicy to open the policy details.
+Make a note of the Policy ARN at the top. You will use the policy ARN in a subsequent section.
+3. Generate access keys for edXOptimizingUser.
+In this section, you will generate the access keys for the IAM user edXOptimizingUser. You need the access keys to make programmatic calls to the AWS services via the AWS CLI.
+
+In the IAM dashboard, click Users in the left navigation menu.
+Click the hyperlink for edxOptimizingUser to open the details of the IAM user edxOptimizingUser.
+Click Security credentials tab.
+In the Access keys section, click Create access key. You should see a success message with your access keys information.
+Click Download .csv file to download the access keys to your local computer. Important: This is the only time that the secret access keys can be viewed or downloaded.
+Click Close.
+Make a note of the User ARN at the top. You will use the User ARN in a subsequent section.
+4. Configure AWS Cloud9 environment with the access keys of edXOptimizingUser.
+In this section, you will disable credential management on your AWS Cloud9 instance. AWS Cloud9 automatically manages the credentials for the instance on which it is hosted. These AWS managed temporary credentials place some restrictions on IAM and AWS Security Token Service (AWS STS) operations. You may read more about the restrictions here. To use the access keys you generated in the last section, you need to disable credential management on your AWS Cloud9 instance. Then you will configure the AWS CLI on the AWS Cloud9 instance with the access keys of the IAM user edXOptimizingUser.
+
+In your AWS Cloud9 environment, click Preferences, as shown in the screenshot below. 
+
+Scroll down and expand AWS SETTINGS.
+Click Credentials.
+Disable the AWS managed temporary credentials by toggling the button to off.
+Close the Preferences window.
+In the AWS Cloud9 terminal, run the command below to configure the AWS CLI with the access keys for edXOptimizingUser.
+aws configure
+
+Follow the prompts and enter the access key ID and secret access key you downloaded in the previous section. For Default region name, type us-west-2. For Default output format, click ENTER. The configuration will be similar to below.
+
+AWS Access Key ID [None]: YOUR_ACCESS_KEY_ID
+AWS Secret Access Key [None]: YOUR_SECRET_ACCESS_KEY
+Default region name [None]: us-west-2
+Default output format [None]:
+
+You have successfully configured the AWS CLI on your AWS Cloud9 instance.
+5. Attach the DenyBucketDeletionPolicy to the IAM user edXOptimizingUser.
+In this section, you will attach the IAM policy that you created in a previous section, DenyBucketDeletionPolicy, to the IAM user edXOptimizingUser via the AWS CLI. This is the blue arrow in the diagram.
+
+In your AWS Cloud9 terminal, run the command below to attach the DenyBucketDeletionPolicy policy. Replace REPLACE_WITH_DenyBucketDeletionPOLICY_ARN in the command below with the ARN of the DenyBucketDeletionPolicy you noted in the first section.
+aws iam attach-user-policy --policy-arn REPLACE_WITH_DenyBucketDeletionPOLICY_ARN --user-name edXOptimizingUser
+
+To verify that the DenyBucketDeletionPolicy has been attached to edXOptimizingUser, open the IAM dashboard.
+In the IAM dashboard, click Users in the left navigation menu.
+Click the hyperlink for edXOptimizingUser.
+In the Permissions tab, you should see the DenyBucketDeletionPolicy along with the edXOptimizingPolicy. You may need to refresh the page to see the DenyBucketDeletionPolicy policy.
+6. Create a trust policy and an IAM role for edXOptimizingUser.
+In this section, you will create a trust policy and an IAM role so that IAM user edXOptimizingUser will be able to assume the IAM role to delete the S3 bucket.
+
+In your AWS Cloud9 environment, select the edXOptimizing folder in the tree view, right-click it, and then click New File to create a file. Name the file TrustRelationship.json.
+Double-click to open TrustRelationship.json.
+Paste the contents below in the file TrustRelationship.json. Replace REPLACE_WITH_ARN_OF_USER in the JSON snippet below with the ARN of the edXOptimizingUser you noted in an earlier section.
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "REPLACE_WITH_ARN_OF_USER"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {}
+    }
+  ]
+}
+
+Save the file.
+Create an IAM role called AllowBucketDeletionRole allowing the user to assume the role. You allowed edXOptimizingUser to assume the role in the TrustRelationship.json. Run the command below to create the IAM role AllowBucketDeletionRole. The TrustRelationship.json defines the relationship represented by the red arrow in the diagram.
+aws iam create-role --role-name AllowBucketDeletionRole --assume-role-policy-document file://TrustRelationship.json
+
+You should see a JSON output with information of the AllowBucketDeletionRole.
+Copy the ARN of the AllowBucketDeletionRole. The ARN of the role is similar to arn:aws:iam::111111111111:role/AllowBucketDeletionRole. Refer to the screenshot below. 
+
+Attach the AllowBucketDeletionPolicy policy to the AllowBucketDeletionRole role. This is the yellow arrow in the diagram. You created the policy in an earlier section. The policy allows deletion of S3 buckets starting with edx-. Replace REPLACE_WITH_ALLOW_BUCKET_DELETION_POLICY_ARN in the command below with the ARN of AllowBucketDeletionPolicy you copied in an earlier section. Run the command below to attach the policy to the AllowBucketDeletionRole role.
+aws iam attach-role-policy --policy-arn REPLACE_WITH_ALLOW_BUCKET_DELETION_POLICY_ARN --role-name AllowBucketDeletionRole
+
+You have successfully created an IAM role and attached a policy to the role that allows a user who assumes the role to delete an S3 bucket with name starting with edx-.
+7. Test the DenyBucketDeletionPolicy and the AllowBucketDeletionRole on an S3 bucket.
+In this section, you will create an S3 bucket with name starting with edx-. Then you will try deleting the bucket. The delete will fail because you have attached the DenyBucketDeletionPolicy to the edXOptimizingUser. Then you will assume the role AllowBucketDeletionRole, and again try deleting the bucket. This time, the delete should succeed because the role AllowBucketDeletionRole temporarily allows edXOptimizingUser to delete the S3 bucket. Follow the steps below.
+
+In your AWS Cloud9 terminal, create an S3 bucket by running the command below. Replace REPLACE-WITH-YOUR-INITIALS in the command below with your initials. The AWS CLI command aws s3 mb creates an S3 bucket.
+aws s3 mb s3://edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS
+
+Now try to delete the edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS bucket with the command below. You should get an access denied message.
+aws s3 rb s3://edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS
+
+You should a message similar to below.
+remove_bucket failed: An error occurred (AccessDenied) when calling the DeleteBucket operation: Access Denied
+
+To delete the edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS, you will make an AWS CLI call to the AssumeRole API of AWS STS. The AssumeRole API returns a set of temporary credentials and a session token. Replace REPLACE_WITH_ALLOW_BUCKET_DELETION_ROLE_ARN with the ARN of the AllowBucketDeletionRole you copied in an earlier section. Run the command below to generate the temporary credentials and a session token.
+aws sts assume-role --role-arn REPLACE_WITH_ALLOW_BUCKET_DELETION_ROLE_ARN --role-session-name 'Session'
+
+You should see a JSON output with the temporary credentials. Observe that the credentials have an expiration associated to them. This means the credentials are valid for a limited time. In a subsequent step, when you will delete the bucket by assuming the role, AWS CLI will refer to these credentials to validate the user and the session.
+The file ~/.aws/config contains the profiles that AWS CLI uses to make API calls. To configure the AWS CLI with a new profile with privileges to assume an IAM role, you need to edit the ~/.aws/config file.
+Click the settings icon and then click Show Home in Favorites and Show Hidden Files, as shown in the screenshot below. 
+
+Open the ~/.aws/config file.
+To create a new profile called PrivilegedRole in the ~/.aws/config file, paste the contents below in the file. Replace REPLACE_WITH_ALLOW_BUCKET_DELETION_ROLE_ARN below with the ARN of the AllowBucketDeletionRole. 
+Important: Make sure to paste the contents below at the end of the ~/.aws/config file. Do not overwrite or delete any existing contents in the file.
+
+[profile PrivilegedRole]
+role_arn = REPLACE_WITH_ALLOW_BUCKET_DELETION_ROLE_ARN
+source_profile = default
+
+Save the file.
+Now, delete the edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS bucket by running the command below. Replace REPLACE-WITH-YOUR-INITIALS with the initials you used while creating the bucket. Observe that you are using the profile PrivilegedRole while running the delete command. This profile will enable the edXOptimizingUser to assume the role AllowBucketDeletionRole.
+aws s3 rb s3://edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS --profile PrivilegedRole
+
+You should see a message similar to below.
+remove_bucket: edx-exercise5-1edx-exercise5-1-REPLACE-WITH-YOUR-INITIALS
+
+This means the delete was successful. You have successfully deleted the bucket by assuming an AWS IAM role.
+8. Turn on the AWS managed temporary credentials on AWS Cloud9.
+In this section, you will turn the AWS managed temporary credentials in the AWS Cloud9 environment back on again. Previously, you toggled it off in order to assume an IAM role. To avoid running into issues for the subsequent exercises, you need to toggle the AWS managed temporary credentials setting back on. Follow the steps below.
+
+In your AWS Cloud9 environment, click AWS Cloud9 -> Preferences on the top menu bar.
+Expand the AWS SETTINGS section.
+Toggle the AWS managed temporary credentials to on. You should see the toggle button change its color to green.
+Close the Preferences window.
+9. Delete the resources created in this exercise.
+In this section, you will delete the IAM role and policies created for this exercise. Follow the steps below.
+
+Delete the IAM role.
+Go to the IAM dashboard and click Roles in the left side navigation menu.
+In the search textbox, type AllowBucketDeletionRole
+Select the AllowBucketDeletionRole role from the filtered list and click Delete role at the top.
+Click Yes, Delete on the prompt message.
+Delete the IAM policies.
+In the IAM dashboard, click Policies in the left side navigation menu.
+In the search textbox, type DenyBucketDeletionPolicy
+Select the DenyBucketDeletionPolicy policy from the filtered list and click Policy actions -> Delete at the top.
+Click Delete on the prompt message.
+In the search textbox, type AllowBucketDeletionPolicy
+Select the AllowBucketDeletionPolicy policy from the filtered list and click Policy actions -> Delete at the top.
+Click Delete on the prompt message.

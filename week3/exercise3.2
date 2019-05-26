@@ -1,0 +1,93 @@
+Exercise 3.2
+ Bookmark this page
+In this exercise, you will deploy a serverless app using the serverless framework. The serverless framework uses AWS services such as AWS CloudFormation, Amazon API Gateway, and AWS Lambda to build and deploy applications. The application is the same one you worked with in the Docker and Amazon ECS exercises, refactored into a serverless architecture.
+
+To begin, follow the steps below.
+
+1. Download and explore the exercise code.
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the console, click Services, then click Cloud9 to open the AWS Cloud9 dashboard.
+Make sure you are in the Oregon region.
+Make sure you are in the home directory of your AWS Cloud9 environment by running the command below in the AWS Cloud9 terminal.
+cd ~/environment
+
+To download the application code, run the command below in your AWS Cloud9 terminal.
+wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADO/v1.0.0/exercises/ex-serverless.zip -O ~/ex-serverless.zip
+
+Unzip the application code by running the command below.
+unzip -o ~/ex-serverless.zip
+
+In the left side tree view, expand the ex-serverless folder and observe that there are two components, ex-serverless/api-service and ex-serverless/html-frontend, in the application.
+Expand the ex-serverless/api-service folder. Observe the ex-serverless/api-service/handler.py file. The handler.py contains the AWS Lambda function code that runs in response to the HTTP requests. Open the ex-serverless/api-service/serverless.yml file. Observe that there are two APIs: get_zones and get_current_time. The AWS Lambda functions and the events that trigger the function are defined in the serverless.yml. You may read more about the serverless.yml file here.
+2. Install dependencies and deploy the serverless app.
+In this section, you will install the serverless framework in your AWS Cloud9 environment and install its dependencies. Then you will deploy the serverless app. When you deploy the serverless app, the resources defined in the serverless.yml file are translated in to an AWS CloudFormation stack. You can observe the resources that are created via the AWS CloudFormation stack in the AWS CloudFormation dashboard. Follow the steps below.
+
+Change your working directory by running the command below.
+cd ~/environment/ex-serverless/api-service/
+
+Install the serverless framework by running the command below.
+npm install -g serverless
+
+Install the npm dependencies by running the command below. For this exercise, you will install the serverless-python-requirements.
+npm install
+
+Deploy the serverless app by running the command below. The resources defined in the serverless.yml file are translated in to an AWS CloudFormation stack.
+serverless deploy -v
+
+You should see messages similar to those shown below. This means the serverless framework is deploying the app by creating an AWS CloudFormation stack called api-service-dev.
+
+Serverless: Installing requirements of requirements.txt in .serverless...
+Serverless: Packaging service...
+Serverless: Excluding development dependencies...
+Serverless: Injecting required Python packages to package...
+Serverless: Creating Stack...
+Serverless: Checking Stack create progress...
+CloudFormation - CREATE_IN_PROGRESS - AWS::CloudFormation::Stack - api-service-dev
+
+In the console, click Services, then click CloudFormation to open the AWS CloudFormation dashboard.
+In the list of stacks, observe that there is a stack called api-service-dev with status of CREATE_IN_PROGRESS. It takes about two minutes for the stack to finish creating.
+Select the stack and click the Resources tab at the bottom. Observe the various resources that are created as a part of the deployment.
+Go back to the AWS Cloud9 terminal and observe the different events and resources created by AWS CloudFormation while deploying the app.
+Make a note of the API endpoints of the get_zones and the get_current_time APIs, as shown in the screenshot below.
+
+Make a note of the REST API ID as shown in the screenshot below. You will need the API ID in the next section.
+
+Run the command below to see the output of the get_zones API. Replace REPLACE_WITH_GET_ZONES_API_URL with the API endpoint for the get_zones API that you copied in a previous step. The API endpoint looks like this: https://1wdanj0gac.execute-api.us-west-2.amazonaws.com/dev/v1.0/get_zones
+curl REPLACE_WITH_GET_ZONES_API_URL
+
+You should see the JSON output containing different time zones.
+Run the command below to see the output of the get_current_time API. Replace REPLACE_WITH_GET_CURRENT_TIME_API_URL with the API endpoint for the get_current_time API you copied in a previous step. Replace {region} at the end of the API endpoint, with us-west-2. After you replace the variables, the API endpoint will look like this: https://1wdanj0gac.execute-api.us-west-2.amazonaws.com/dev/v1.0/get_current_time/us-west-2
+curl REPLACE_WITH_GET_CURRENT_TIME_API_URL
+
+You should see a JSON output showing the current time. You have successfully deployed the APIs via the serverless framework.
+3. Update the html-frontend component with Javascript SDK and test the serverless app.
+To test the APIs via the html-frontend component, you need to update the html-frontend component with the JavaScript SDK generated by Amazon API Gateway. In this section, you will request API Gateway to generate the JavaScript SDK via the REST API ID. Follow the steps below.
+
+Change your working directory by running the command below.
+cd ~/environment/ex-serverless/html-frontend/
+
+Get the JavaScript SDK from API Gateway by running the command below. Replace REPLACE_WITH_REST_API_ID in the command below with the REST API ID you copied in the previous section. The REST API ID is similar to 1wdanj0gac.
+aws apigateway get-sdk --rest-api-id REPLACE_WITH_REST_API_ID --stage-name dev --sdk-type javascript ~/javascript-sdk.zip
+
+Unzip the JavaScript SDK in to the html-frontend folder by running the command below.
+unzip ~/javascript-sdk.zip
+
+You should see a folder named apiGateway-js-sdk under the html-frontend folder. Expand the apiGateway-js-sdk folder and observe that API Gateway has created the JavaScript libraries.
+To test the APIs via the html-frontend, locate the ex-serverless/html-frontend/index.html file in the tree view. Right-click the file and select Preview. You should see the application front end in the AWS Cloud9 environment. Select a location from the drop-down menu and observe that the current time of that location is displayed.
+You have successfully deployed and tested an application via the serverless framework.
+
+Optional Challenge 1
+In this exercise you interacted with the application with the Cloud9 preview feature. As a challenge apply the concepts from exercise 2.1 to deploy the front end portion of your application into an S3 bucket.
+
+Everything you need for the browser front-end is in the ex-serverless/html-frontend directory. Sync this content to an s3 bucket to host your front end.
+
+4. Delete the deployment and the associated resources.
+In this section, you will delete the deployed app via the serverless framework. This will also delete the CloudFormation stack and the associated resources. Follow the steps below.
+
+In your Cloud9 terminal, run the command below to make sure you are in the correct directory.
+cd ~/environment/ex-serverless/api-service
+
+Run the command below to delete the app and its resources.
+serverless remove
+
+Go to the CloudFormation dashboard and observe that the api-service-dev stack is in the DELETE_IN_PROGRESS status. The stack and the associated resources will be deleted in under a minute.

@@ -1,0 +1,52 @@
+Exercise 4.1
+ Bookmark this page
+In this exercise, you will configure automatic scaling on the Amazon DynamoDB table called Courses. Then you will generate a load on the DynamoDB table by running a Python script that will create many write requests on the table. Observe how DynamoDB scales.
+
+To begin, follow the steps below.
+
+1. Configure automatic scaling on the DynamoDB table.
+In this section, you will configure the Courses DynamoDB table so that it scales automatically when load increases. You can specify the desired target utilization and provide the upper and lower bounds for read and write capacity. DynamoDB will then monitor throughput consumption using Amazon CloudWatch alarms and will adjust the provisioned capacity as needed. Follow the steps below.
+
+In the AWS Management Console, click Services, then click DynamoDB to open the DynamoDB dashboard.
+In the left navigation menu, click Tables.
+Click the Courses hyperlink.
+Click the Metrics tab. Observe that the provisioned capacity (shown in red) is higher than the consumed capacity (shown in blue) in the graph. This means, the consumed capacity for the Courses table is much lower than what is provisioned for the table.
+Observe that there are no spikes in the graph and that provisioned and consumed throughput is in a steady state. You should see a graph similar to the screenshot below. 
+
+Click the Capacity tab.
+In the Auto Scaling section, check the checkbox for Read capacity and Write capacity.
+Observe that the default Target utilization is set to 70% and the default Maximum provisioned capacity is 10000 units.
+Keep default settings and click Save.
+You have successfully configured the Courses table to automatically scale when target utilization of the table exceeds 70 percent.
+
+2. Generate load and observe DynamoDB scale.
+In this section, you will run a Python script that will create many write requests on the Courses table. This will cause a spike in the load, which will increase the target utilization to more than 70 percent. Then you will observe how DynamoDB provisions additional write capacity units to scale. To avoid exceeding free-tier limits for the write capacity units, the Python script will generate a sudden spike that lasts for less than a minute. This will ensure that DynamoDB scales within the free-tier limits.
+
+In your AWS Cloud9 environment, run the command below to download the zip file containing the Python script.
+wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADO/v1.0.0/exercises/ex-dynamodbscale.zip -O ~/ex-dynamodbscale.zip
+
+Unzip the file by running the commands below.
+ cd ~/environment
+unzip ~/ex-dynamodbscale
+In the left side tree view, open the file ex-dynamodbscale/put_item_load_test.py. The Python script ex-dynamodbscale/put_item_load_test.py inserts 1,000 items in the Courses table. This generates a spike in the load on the table, which triggers DynamoDB automatic scaling.
+Run the command below to change your working directory.
+ cd ex-dynamodbscale
+Run the command below to generate the load on the DynamoDB table.
+ python3 put_item_load_test.py
+The script will finish running in under a minute and generate a spike in the load for less than a minute.
+Wait for about two minutes to see the effects of the load on the graph. In the DynamoDB dashboard, click the Metrics tab. In a few minutes, you should see a sudden spike in the consumed capacity (shown in blue) in the graph for the Write Capacity graph. You may have to refresh the page frequently to see the spike in the graph. The spike looks similar to what is shown in the screenshot below. 
+
+After about 10-12 minutes, click the Capacity tab and expand the Scaling Activities expander. Observe that there is a scaling activity in the list. Scroll to the right. Under the Scaling Activity column, observe that the write capacity unit is set to 18. That means DynamoDB scaled automatically under the generated load to provision more write capacity units. If you don't see scaling activity, wait a few more minutes and refresh the page to observe the scaling activity. It takes some time for the scaling activity to appear in the list. You may switch over to another task and come back to this exercise to view the graph and scaling activities.
+Go back to the Metrics tab and refresh the graph again. Observe that the provisioned capacity (shown in red) has scaled to 18 in the Write Capacity graph. The graph looks similar to the screenshot below. Note: It takes some time for the graph to show the scaled data. If you don't see the spike yet, wait for a few minutes and refresh the graph. You may switch over to some other task and come back to this exercise to view the graph and scaling activities. 
+
+The provisioned write capacity units will stay at 18 until the scale-down activity is triggered. Currently, Auto Scaling does not scale down your provisioned capacity if your table's consumed capacity becomes zero. As a workaround, you can send requests to the table until Auto Scaling scales down to the minimum capacity. Run the command below to send a single put request.
+cd ~/environment/ex-dynamodb
+python3 put_ddb_item.py
+The scale-down activity will reduce the provisioned write capacity units. Refresh the graph again after 10 minutes to observe that the provisioned write capacity has come down. The graph looks similar to the screenshot below. 
+
+Similarly, in the Capacity tab, observe that there is a scale down activity in the list. Scroll to the right and observe the Scaling Activity column. You should see that the write capacity units have scaled down.
+3. Delete the DynamoDB table.
+In the DynamoDB dashboard, click Tables in the left side navigation menu.
+Select the Courses table by clicking the radio button.
+Click Delete table at the top.
+Click Delete on the prompt message.

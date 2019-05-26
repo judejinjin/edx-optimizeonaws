@@ -1,0 +1,131 @@
+Exercise 4.2
+ Bookmark this page
+In this exercise, you will scale up the Amazon ECS cluster you created in a previous exercise. You will use Auto Scaling policies to scale the cluster to the desired number of instances.
+
+To begin, follow the steps below.
+
+1. Scale the optimizing-cluster Amazon ECS cluster.
+In this section, you will scale the Amazon ECS optimizing-cluster cluster back up to one instance. Follow the steps below.
+
+In the Amazon EC2 dashboard, under AUTO SCALING, click Auto Scaling Groups in the left side navigation menu.
+You should see an auto scaling group for the optimizing-cluster ECS cluster in the list.
+Click Edit at the right side in the bottom pane.
+For Desired, type 1
+For Max, type 2
+Click Save.
+Go to the Activity History tab and refresh the page. Observe that Amazon ECS is attempting to scale the cluster by adding an instance to the cluster. The status of the instance is Not yet in service. The instance should be ready in under a minute. It takes about 10 minutes for the tasks in the cluster to start running on the instance.
+In the Amazon ECS dashboard, click Clusters in the left side navigation menu.
+In the Amazon ECS dashboard, notice that the Running Tasks (displayed at the bottom) is still 0. Wait for about 10 minutes for both tasks (timezones-frontend-task and timezones-appserver-task) to begin running. When you return to the exercise after 10 minutes, make sure that both the tasks are running before you proceed.
+You have successfully scaled the Amazon ECS cluster back up to one instance.
+
+2. Create an alarm on the Amazon ECS cluster to trigger automatic scaling.
+In the Amazon ECS exercise in week 1, you created two tasks: timezones-frontend-task and timezones-appserver-task. Each one had 256 MB memory. In this section, you will create an alarm on the Amazon ECS cluster to trigger when the memory reservation of the cluster exceeds 60 percent.
+
+In the Amazon ECS dashboard, click Clusters in the left side navigation menu.
+Click the optimizing-cluster hyperlink.
+Click the Tasks tab. You should see that two tasks are running: timezones-frontend-task and timezones-appserver-task. Both of these tasks require 256 MB memory on the cluster instance. This is an artificially high number so that you can see the memory reservation go beyond the memory of a single t2.micro instance cluster.
+Click the ECS Instances tab.
+In the Memory Available column, observe that only 481 MB memory is available for the instance because the instance is running two tasks of 256 MB each.
+Click the Metrics tab.
+Scroll down to the MemoryReservation graph. Observe that the memory reserved by running tasks in the cluster is around 51 percent.
+Click the MemoryReservation hyperlink.
+Scroll to right. Under the Actions column, click the bell icon to create an alarm.
+In the Create Alarm window, for Name, type cluster-memory
+For Whenever: Memory Reservation is: >=, type 60
+On the right side, for Period, select 1 Minute.
+In the Actions section, click Delete at the right side. You are not going to send a notification when the alarm is triggered.
+Click Create Alarm.
+You have successfully created an alarm on the Amazon ECS cluster which is triggered when memory reservation exceeds 60 percent.
+
+3. Set up an automatic scaling policy for the cluster.
+In this section, you will create a scaling policy for the Amazon ECS cluster. The automatic scaling policy will kick in when the alarm on the Amazon ECS cluster triggers the policy.
+
+In the Amazon EC2 dashboard, under AUTO SCALING, click Auto Scaling Groups in the left side navigation menu.
+Click Scaling Policies tab in the bottom pane.
+Click Add policy.
+Click Create a simple scaling policy hyperlink at the bottom.
+For Name, type cluster-scale-up
+For Execute policy when, select cluster-memory.
+For Take the action, type 1 in the Add textbox.
+Click Create.
+You have successfully added an automatic scaling policy that scales up when memory reservation exceeds 60 percent.
+
+4. Test the automatic scaling policy.
+In this section, you will test the scale-up policy you created in the previous section by launching additional tasks in the timezones-frontend-service.
+
+In the Amazon ECS dashboard, click Clusters in the left side navigation menu.
+Click the optimizing-cluster hyperlink.
+In the Services tab at the bottom, click the timezones-frontend-service hyperlink.
+Observe that the Desired count is set to 1. You will modify the service and set the Desired count to 3 to launch an additional task for the timezones-frontend-service.
+Click Update.
+For Number of tasks, delete the existing count of 1 and type 3
+Click Next step.
+Skip the Configure network page and click Next step.
+Skip the Set Auto Scaling page and click Next step.
+On the Review page, scroll down and click Update Service.
+Click View Service.
+Click the Events tab.
+Observe that there is an event with the message: service timezones-frontend-service was unable to place a task because no container instance met all of its requirements.
+In the console, click Services, then click CloudWatch to open the Amazon CloudWatch dashboard.
+In the left side navigation menu, click Alarm. You should see the cluster-memory alarm in the list. If you don't see this immediately wait a few minutes for the metrics to update.
+Select the alarm.
+In the Details tab at the bottom, observe the Actions field. It mentions that the cluster-scale-up policy was applied in response to the alarm.
+Click the History tab. You should see an item called Action in the list. The description for the Action is similar to Successfully executed action arn:aws:autoscaling:. Expand the Action item and observe the History Data JSON snippet which gives you information about the auto scaling policy applied in the Action.
+In the Amazon EC2 dashboard, under AUTO SCALING, click Auto Scaling Groups in the left side navigation menu.
+Click the Activity History tab at the bottom. You should see a new activity which says that a new EC2 instance has been launched.
+In the Amazon ECS dashboard, click Clusters in the left side navigation menu.
+In the Amazon ECS dashboard, observe that there are two running container instances.
+Click the optimizing-cluster hyperlink.
+In the Services tab at the bottom, click the timezones-frontend-service hyperlink.
+Click the Events tab. Observe that there are events which give information about the new instance added to the cluster in response to the alarm.
+After about 10 minutes, go back to the CloudWatch dashboard and observe that the alarm is no longer present and the status is OK.
+Click OK in the left side navigation menu. You should see the cluster-memory alarm in a green status.
+To observe the load balancer and the newly created instance registered with the load balancer, open the Amazon EC2 dashboard.
+In the Amazon EC2 dashboard, under LOAD BALANCING, click Target Groups in the left side navigation menu.
+Select the default-target.
+Click the Targets tab at the bottom.
+Observe that there are three tasks running on two instances registered for the default-target group.
+To test the timezones-frontend container via the timezones-alb load balancer, click Load Balancers in the left side navigation menu of the Amazon EC2 dashboard.
+In the Description tab, copy the DNS name of the timezones-alb.
+Open a web browser and paste the DNS name of the load balancer you just copied. You should see the application load.
+At the bottom of the application, observe that there is the container hostname of the container instance. The hostname is similar to ef20ae6d1939.
+Hit your web browser's Refresh button a few times and observe that the hostname changes, which indicates that the requests are being load balanced across the cluster containers.
+You have successfully set up automatic scaling for the ECS cluster.
+
+5. Clean up the resources created for the exercise.
+In this section, you will delete the Amazon ECS cluster and its associated resources. Follow the steps in the order listed below to successfully delete the Amazon ECS cluster.
+
+Scale the cluster instances down to 0.
+In the Amazon EC2 dashboard, under AUTO SCALING, click Auto Scaling Groups in the left side navigation menu.
+Make sure that the auto scaling group in the list is selected.
+In the Details tab at the bottom, click Edit.
+For Desired, type 0
+Click Save. This will scale the cluster instances down to 0 in about 2 minutes.
+Go to the Amazon ECS dashboard and make sure that the cluster instances for the optimizing-cluster is now set to 0.
+Delete the cluster security group.
+In the console, click Services, then click EC2 to open the Amazon EC2 dashboard.
+In the left side navigation menu, click Security Groups.
+Locate and select the security group for the ECS cluster. The name of the security group is similar to EC2ContainerService-optimizing-cluster-EcsSecurityGroup-XXXXXXX.
+Click Actions -> Delete Security Group at the top.
+On the prompt message, click Yes, Delete.
+Delete the load balancer.
+Delete the load balancer you created in the Amazon ECS exercise in the first week. Here's how to delete the load balancer: open the Amazon EC2 dashboard and click Load Balancers under LOAD BALANCING, select timezones-alb and then click Actions -> Delete.
+Click Yes, Delete on the prompt message.
+Delete the target groups for the load balancer.
+In the Amazon EC2 dashboard, click Target Groups under LOAD BALANCING.
+Select both the default-target and the ecs-timezones-appserver-service target groups and click Actions -> Delete at the top.
+On the prompt message, click Yes.
+Delete the security group of the load balancer.
+In the Amazon EC2 dashboard, click Security Groups under NETWORK & SECURITY.
+Locate and select the alb-sg security group.
+Click Actions -> Delete Security Group at the top.
+On the prompt message, click Yes, Delete.
+Delete the cluster.
+In the Amazon ECS dashboard, click Clusters in the left side navigation menu.
+Click the optimizing-cluster hyperlink.
+Click Delete Cluster at the top right corner.
+Click Delete on the prompt message. It takes about two minutes for the cluster and its resources to be deleted.
+Delete the ECR repositories.
+In the Amazon ECS dashboard, click Repositories in the left side navigation menu.
+Select both the timezones-frontend and the timezones-appserver repositories and click Delete repository at the top.
+Click Delete on the prompt message.

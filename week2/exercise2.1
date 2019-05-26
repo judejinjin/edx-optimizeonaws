@@ -1,0 +1,146 @@
+Exercise 2.1
+ Bookmark this page
+In this exercise, you will create a static website with Jekyll, host the website on Amazon S3, and then deliver the website via Amazon CloudFront. CloudFront is a global content delivery network (CDN) service that securely delivers data, videos, applications, and APIs to your viewers with low latency and high transfer speeds.
+
+To begin, follow the steps below.
+
+1. Create and configure an Amazon S3 bucket.
+In this section, you will create an Amazon S3 bucket and configure the bucket for static website hosting. You will set the bucket policy that enables content distribution. Follow the steps below.
+
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the console, click Services, then click S3 to open the Amazon S3 dashboard.
+Click Create bucket.
+For Bucket name, type edx-static-website-REPLACE_WITH_YOUR_INITIALS
+Note Replace REPLACE_WITH_YOUR_INITIALS in the bucket name above with your initials to make it unique.
+For Region, select US East (N. Virginia).
+Click Create.
+Click the bucket you just created. This bucket is not publicly accessible. To host a static website on the S3 bucket, you need to change the bucket policy to allow read access to the bucket.
+Click Permissions tab.
+Click Bucket Policy.
+Paste the below policy in the JSON editor. The policy below gives everyone read access to the bucket. Important: Make sure to replace REPLACE_WITH_YOUR_INITIALS in the bucket name below with the initials you used to create the S3 bucket.
+  {
+    "Version":"2012-10-17",
+    "Statement":[
+      {
+        "Sid":"AddPerm",
+        "Effect":"Allow",
+        "Principal": "*",
+        "Action":["s3:GetObject"],
+        "Resource":["arn:aws:s3:::edx-static-website-REPLACE_WITH_YOUR_INITIALS/*"]
+      }
+    ]
+  }
+Click Save.
+You should see a message at the top similar to below: 
+This bucket has public access You have provided public access to this bucket. We highly recommend that you never grant any kind of public access to your S3 bucket. 
+You may ignore the message as we intentionally made the bucket public to enable static website hosting.
+Click the Properties tab at the top.
+Click the Static website hosting box.
+Click Use this bucket to host a website option.
+For Index document, type index.html
+Copy the Endpoint URL at the top. You will access the static website via this URL.
+Click Save.
+You have successfully configured the S3 bucket to enable static website hosting.
+
+2. Create an Amazon CloudFront distribution.
+In this section, you will create an Amazon CloudFront distribution using the bucket you created in the previous section, as the origin.
+
+In the console, click Services, then click CloudFront to open the CloudFront dashboard.
+Click Create Distribution.
+Since you are creating a web distribution, click Get Started under the Web category.
+For Origin Domain Name, type edx and select the bucket that appears. This is the bucket you created in the last section. The bucket name is similar to edx-static-website-REPLACE_WITH_YOUR_INITIALS.
+Under the Default Cache Behavior Settings section, scroll down to Compress Objects Automatically and select Yes.
+Under the Distribution Settings, for Default Root Object, type index.html
+Scroll down and click Create Distribution. It takes about 15-20 minutes for the CloudFront distribution to create. In the meantime, you may proceed to the next section.
+3. Create a static website using Jekyll and test locally.
+In this section, you will create a static website in your AWS Cloud9 environment using Jekyll and test it locally. Jekyll is a popular static website generator. You may check out other static website generators here. You can customize the website using the themes available here. To create a static website on your Cloud9 instance, you need to install Jekyll. Follow the steps below.
+
+In your AWS Cloud9 environment, run the command below to make sure you are in the home directory.
+cd ~/environment
+
+Install Jekyll by running the command below.
+gem install jekyll bundler
+
+It takes about 2 minutes for Jekyll to install on your local AWS Cloud9 instance.
+Create a new website by running the command below.
+jekyll new my-static-website
+
+You should see a folder named my-static-website in the left side tree view.
+Change your working directory by running the command below.
+cd my-static-website
+
+Run the command below to serve the static website on port 8080 of your AWS Cloud9 instance.
+bundle exec jekyll serve --port 8080
+
+You should see a message that the server is running.
+You should also see a small pop-up open up with a link to the website hosted on the local AWS Cloud9 instance.
+Click the hyperlink as shown in the screenshot below. 
+
+You should see a sample Jekyll website. Feel free to customize the website.
+4. Copy the static website contents to Amazon S3 and test website via Amazon S3.
+In this section, you will sync the static website contents generated by Jekyll to your S3 bucket. Then you will test the website by accessing it via the S3 endpoint URL. Follow the steps below.
+
+In your AWS Cloud9 terminal, press CTRL+C to stop the server.
+Change your working directory by running the command below.
+cd _site/
+
+_site is the folder where Jekyll stores the html content for the website. To host the static website you just created, you will copy the contents of the _site folder to your S3 bucket.
+Run the command below to copy the contents of the folder to the S3 bucket. Replace REPLACE_WITH_YOUR_INITIALS in the command below with the initials you used in the S3 bucket name.
+aws s3 sync . s3://edx-static-website-REPLACE_WITH_YOUR_INITIALS
+
+aws s3 sync is an AWS CLI command to sync contents of a folder to S3. In the command above, you are syncing the contents of the current folder (represented by the dot) to the S3 bucket edx-static-website-REPLACE_WITH_YOUR_INITIALS.
+To test whether the website has been hosted successfully on Amazon S3, paste the S3 endpoint URL in a web browser and click ENTER. You should see the static website.
+Type /index.html in front of the endpoint URL as shown below and click ENTER again. You should see the same static website served via the index.html page.
+http://edx-static-website-abc.s3-website-us-west-2.amazonaws.com/index.html
+
+You have successfully hosted the static website on Amazon S3.
+
+5. Verify the website via the CloudFront distribution.
+In this section, you will verify whether the static website is accessible via the CloudFront distribution you created in an earlier section. Follow the steps below.
+
+In the console, click Services, then click CloudFront to open the CloudFront dashboard.
+Check the status of the web distribution you created in an earlier section. If the status is still In Progress, wait for the distribution to finish creating. Once the distribution is created, the status changes to Deployed.
+Click the hyperlink in the ID column to open the distribution details.
+In the General tab, copy the Domain Name of the distribution. The domain name is similar to d2whh1k778qc2f.cloudfront.net.
+Open a browser and paste the domain name you just copied. You should see your static website load. This means the website is now being served via the CloudFront distribution with the S3 bucket as the origin.
+6. Restrict access to the S3 bucket using Origin Access Identity.
+Note that the static website is also accessible via the S3 endpoint URL. There is a chance that users might bypass the CloudFront distribution and access the website directly via the S3 endpoint URL. In this section, you will restrict access to the S3 bucket so that the bucket is no longer publicly accessible. To restrict access, you will use Origin Access Identity (OAI). Follow the steps below.
+
+In the CloudFront dashboard, open the web distribution you created by clicking the hyperlink in the ID column.
+Click the Origins tab.
+Select the S3 bucket origin in the list by checking the checkbox to the left.
+Click Edit.
+For Restrict Bucket Access, click Yes.
+For Origin Access Identity, leave the default selection set to Create a New Identity.
+For Grant Read Permissions on Bucket, select Yes, Update Bucket Policy. This will update the S3 bucket policy to read access to the CloudFront distribution.
+Click Yes, Edit at the bottom.
+Go back to the CloudFront distribution by clicking the CloudFront Distributions	hyperlink at the top.
+You should see that the CloudFront distribution status is In Progress. It is now updating the configuration changes to restrict bucket access. This will take 15-20 minutes to finish updating. After the update is complete, the status changes to Deployed.
+To remove the public access to your S3 bucket, open the Amazon S3 dashboard.
+Click the S3 bucket with name similar to edx-static-website-REPLACE_WITH_YOUR_INITIALS.
+Click Permissions tab.
+Click Bucket Policy.
+In the JSON editor, delete the statement that grants read access to everyone. You will delete the statement highlighted in the screenshot below. 
+
+Click Save.
+You should see that the orange Public tag in the Permissions tab is no longer visible. This means the bucket is no longer public. The bucket is now only accessible to the CloudFront distribution.
+To test if the public read access to the bucket is removed, access the S3 endpoint URL for the bucket.
+You should see a 403 Forbidden message. The S3 origin bucket hosting your static website is no longer publicly accessible.
+Go back to the CloudFront dashboard and check whether the distribution status has changed to Deployed.
+Once the status changes to Deployed, paste the domain name of the distribution in a web browser. You should see your static website load.
+You have successfully set up a CloudFront distribution for your static website hosted on Amazon S3.
+
+7. Delete the resources created for this exercise.
+In this section, you will delete the S3 bucket and the CloudFront distribution. Follow the steps below.
+
+Delete the S3 bucket.
+Open the S3 dashboard and delete the S3 bucket, edx-static-website-REPLACE_WITH_YOUR_INITIALS by selecting the bucket and clicking Delete at the top. On the prompt message, type the bucket name and click Confirm.
+Delete the CloudFront distribution.
+Open the CloudFront dashboard and select the CloudFront distribution by checking the checkbox.
+Click Disable at the top.
+On the prompt message, click Yes, Disable.
+Click Close.
+The State of the CloudFront distribution immediately changes to Disabled. The Status of the CloudFront distribution changes to In Progress. It takes about 15-20 minutes for the status to change to Deployed. 
+Important: Wait until the value of the Status column changes to Deployed.
+Check the check box for the CloudFront distribution and click Delete at the top.
+Click Yes, Delete on the prompt message. Then click Close.

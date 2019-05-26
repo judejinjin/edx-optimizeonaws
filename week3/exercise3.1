@@ -1,0 +1,93 @@
+Exercise 3.1
+ Bookmark this page
+In this exercise, you will provision an Amazon DynamoDB table and populate a sample JSON data set via Python scripts. You will then run queries to filter data from the DynamoDB table.
+
+To begin, follow the steps below.
+
+1. Create DynamoDB table.
+In this section, you will create a DynamoDB table named Courses. The table consists of four fields: subject, course_name, info, and school. The partition key is the subject; course_name is the sort key. The provisioned throughput for the table is 5 units each for ReadCapacityUnits and WriteCapacityUnits. Follow the steps below.
+
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the console, click Services, then click DynamoDB to open the DynamoDB dashboard.
+Make sure you are in the Oregon region.
+Click Create table.
+For Table name, type Courses
+For Primary key, type subject
+Keep the default selection of the Primary key to String.
+Check the Add sort key checkbox.
+Type course_name in the sort key textbox. Keep the default selection of the type of sort key to String.
+In the Table settings section, keep the Use default settings checkbox checked. The default setting provision is 5 reads and 5 writes.
+Click Create. The DynamoDB table will be created in under a minute.
+You have successfully created the Courses DynamoDB table. In a subsequent section, you will populate the table with course data via a Python script.
+
+2. Download and explore the exercise code.
+In this section, you will download the zip file containing the Python scripts for the exercise. You will also explore the Python scripts for populating the table with sample JSON data and inserting an item in the table.
+
+In your AWS Cloud9 environment, run the command below to download the zip file containing the Python scripts.
+wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADO/v1.0.0/exercises/ex-dynamodb.zip -O ~/ex-dynamodb.zip
+
+Unzip the file by running the commands below.
+ cd ~/environment
+unzip ~/ex-dynamodb.zip
+In the left side tree view, open the file ex-dynamodb/populate_ddb_data.py. The Python script ex-dynamodb/populate_ddb_data.py populates the sample course data from the file coursedata.json in the Courses table. The Python script ex-dynamodb/put_ddb_item.py inserts an item in the Courses table.
+3. Populate the DynamoDB table.
+In this section, you will run the Python script to populate the Courses DynamoDB table. Follow the steps below.
+
+In your AWS Cloud9 environment, run the command below to install Boto3. The Boto3 requirement is listed in the ex-dynamodb/requirements.txt file.
+sudo pip-3.6 install -r ex-dynamodb/requirements.txt
+
+Change your working directory by running the command below.
+cd ex-dynamodb
+
+Run the command below to populate the Courses table with the sample course data from the coursedata.json file.
+python3 populate_ddb_data.py
+
+In the console, click Services, then click DynamoDB to open the DynamoDB dashboard.
+In the DynamoDB dashboard, click the Items tab. You may have to click the Refresh button at the right side corner to see the items populated in the table.
+You should see the Courses table populated with course information in the fields, including subject, course_name, info, and school.
+Click an item and explore the data. You should see a pop-up window open up with the details of the item.
+Observe the course name, school, and subject. Expand the expander provided for the info field. You should see more details about the particular course, such as code, course URL, instructors, notes, grading, terms, and notes. Expand the expander for instructors and terms to see the instructors for the course.
+Click Cancel to exit the pop-up window.
+4. Query the DynamoDB table.
+In this section, you will run a few queries on the Courses table to filter data. Follow the steps below.
+
+In the DynamoDB dashboard, click Tables in the left side navigation menu.
+Click the Courses hyperlink to open the table details.
+Click the Items tab.
+Click the Scan: [Table] Courses: subject, course_name hyperlink. You should see a small section expand, as shown in the screenshot below. 
+
+In the expanded section, change the left side drop down menu option to Query. You should see additional fields appear.
+Let's say you want to find course information for the subject Accounting. In the textbox corresponding to the Partition key, type Accounting as shown in the screenshot below. 
+
+Click Start search. You should see the filtered course data corresponding to the Accounting subject.
+Let's say you want to find a course called Humor: Serious Business in the Marketing subject. Delete the text Accounting from the Partition key textbox and type Marketing
+In the Sort key textbox, type Humor
+Change the drop-down menu option to Begins with, as shown in the screenshot below. 
+
+Click Start search. You should see the data filtered to the course Humor: Serious Business. Feel free to play around with the queries and explore more about the DynamoDB table.
+5. Put an item in the DynamoDB table.
+In this section, you will add a new course to the Courses table. The Python script ex-dynamodb/put_ddb_item.py puts a new course item to the DynamoDB table. Follow the steps below.
+
+Open the ex-dynamodb/put_ddb_item.py file and explore the code to add a new item to the Courses table. Observe that a new subject called Art History will be added. The subject has a course called American Architecture. You can find other information about the course in the relevant fields.
+In your AWS Cloud9 environment, run the command below to make sure you are in the correct directory.
+cd ex-dynamodb
+
+Run the command below to put an item in the Courses table.
+python3 put_ddb_item.py
+
+You should see a message like this:
+PutItem succeeded:
+
+To verify that the new item has been added, open the DynamoDB dashboard.
+In the left side navigation menu, click Tables.
+Click the Courses hyperlink.
+Click the Items tab.
+Click the Query: [Table] Courses: subject, course_name hyperlink to expand the query section.
+Change the left side drop-down menu option to Query.
+In the Partition key textbox, type Art History
+If there is any text in the Sort key textbox, clear the text.
+Click Start search. You should see the item for the Art History subject you just added via the Python script.
+You have successfully added an item to the DynamoDB table.
+
+Optional Challenge 1
+You performed query operations in the console in section 4. Write a python script to perform the same queries. The relevant references are available in the Boto 3 documentation DynamoDB.Table.query. Copy the existing ex-dynamodb/put_ddb_item.py as a starting point.

@@ -1,0 +1,160 @@
+Exercise 5.2
+ Bookmark this page
+Note
+This is an optional exercise.
+
+This exercise has a small associated charge. Creating a customer master key (CMK) is not covered under the AWS Free Tier.
+
+Please familiarize yourself with AWS Key Management Service Pricing at: https://aws.amazon.com/kms/pricing/
+
+In this exercise, you will use AWS Key Management Service (AWS KMS) to encrypt and decrypt a string. You will encrypt the string by running a Python script and then decrypt it via an AWS Lambda function. With AWS KMS, you can create and manage the encryption keys used to encrypt your data.
+
+To begin, follow the steps below.
+
+1. Download and explore the exercise code.
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the console, click Services, then click Cloud9 to open the AWS Cloud9 dashboard.
+Make sure you are in the Oregon region.
+Make sure you are in the home directory of your AWS Cloud9 environment by running the command below in the AWS Cloud9 terminal.
+cd ~/environment
+
+To download the application code, run the command below in your AWS Cloud9 terminal.
+wget https://us-west-2-tcdev.s3.amazonaws.com/courses/AWS-100-ADO/v1.0.0/exercises/ex-kms.zip -O ~/ex-kms.zip
+
+Unzip the application code by running the command below.
+unzip -o ~/ex-kms.zip
+
+In the left side tree view, open the ex-kms/encryptor.py file and explore the code. The function kms_encrypt_string encrypts a string passed to the script. The decryptor.zip contains the code for the AWS Lambda function to decrypt the string.
+Change your working directory by running the command below.
+cd ~/environment/ex-kms
+
+Install the requirements for this exercise by running the command below.
+sudo pip-3.6 install -r requirements.txt
+
+2. Create an AWS IAM policy for the AWS Lambda function.
+In this section, you will create an IAM policy that gives AWS Lambda permissions to use AWS KMS for decrypting the string. Note that because the Lambda function only needs to decrypt the string, you are granting AWS Lambda only the minimal permissions: kms:decrypt and kms:describe-key. By doing so, you are following the least privilege principle in AWS IAM. Follow the steps below.
+
+In the AWS Management Console, click Services, then click IAM to open the IAM dashboard.
+Sign in to the AWS Management Console as the edXOptimizingUser IAM user.
+In the left navigation menu, click Policies.
+Click Create policy.
+Click the JSON tab.
+In the editor textbox, completely replace the sample policy with the following.
+   {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "KMSDecrypt",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+Click Review Policy.
+For Name, type DecryptPolicy
+Click Create policy.
+3. Create an IAM role for AWS Lambda and attach policies.
+In this section, you will create an IAM role for AWS Lambda to be able to use AWS KMS to decrypt the string. Then you will attach the IAM policy, DecryptPolicy, that you created in the previous section. You will also attach the AWSLambdaBasicExecutionRole policy, which gives AWS Lambda permissions to write logs to Amazon CloudWatch Logs. Follow the steps below.
+
+In the IAM dashboard, click Roles in the left side navigation menu.
+Click Create role.
+For Select type of trusted entity, keep the default selection, AWS service.
+For Choose the service that will use this role, locate and select Lambda from the list of AWS services.
+For Select your use case, keep the default selection, Allows Lambda functions to call AWS services on your behalf.
+Click Next: Permissions.
+In the Attach permissions policies section, type DecryptPolicy in the search textbox.
+Check the checkbox for DecryptPolicy from the filtered list.
+In the search textbox, delete the existing text and type AWSLambdaBasicExecutionRole
+Check the checkbox for AWSLambdaBasicExecutionRole from the filtered list.
+Click Next: Review.
+For Role name, type LambdaDecryptRole
+Click Create role.
+In the search textbox at the top, type LambdaDecryptRole and click the LambdaDecryptRole hyperlink to select the role.
+Make a note of the Role ARN at the top for later use.
+You have successfully created an IAM role for AWS Lambda and attached the relevant policies to the role.
+4. Create an AWS KMS key.
+In this section, you will create a customer-managed AWS KMS key. The key will be used to encrypt and decrypt a string. Follow the steps below.
+
+In the AWS Management Console, click Services, then click IAM to open the IAM dashboard.
+In the left navigation menu, click Encryption keys.
+Click Get Started Now.
+Click Create key.
+For Alias, type alias/edXExercise-key
+For Description, type Key for edX exercise
+Click Next Step.
+Skip the Add Tags page and click Next Step.
+On the Define Key Administrative Permissions page, for Key Administrators, select edXOptimizingUser. By selecting edXOptimizingUser, you are giving permission to edXOptimizingUser to perform administrative activities on the AWS KMS key.
+Click Next Step.
+On the Define Key Usage Permissions page, select edXOptimizingUser from the list.
+Type LambdaDecryptRole in the search textbox at the top and select the LambdaDecryptRole role.
+In the above two steps, you gave permission to edXOptimizingUser and LambdaDecryptRole only, to use the AWS KMS key. Any other IAM user or role will not be able to use the key.
+Click Next Step.
+On the Preview Key Policy page, review the policy generated by AWS KMS for the KMS key. This policy is generated based on the IAM user edXOptimizingUser and LambdaDecryptRole selections you did in the last few steps.
+Click Finish. The key, alias/edXExercise-key, is generated.
+Select the alias/edXExercise-key by clicking the hyperlink.
+Make a note of the ARN at the top for later use.
+5. Encrypt a string using the AWS KMS key.
+In this section, you will test the AWS KMS key, alias/edXExercise-key, by running the ex-kms/encryptor.py Python script. You will pass a string to the script and the key ARN and observe the encryption details. Then you will encrypt another string via the Python script and dump the encrypted in a JSON file. This JSON file will be used a subsequent section to decrypt the string via a Lambda function. Follow the steps below.
+
+In your AWS Cloud9 terminal, run the command below to make sure you are in the correct directory.
+cd ~/environment/ex-kms
+
+Run the Python script encryptor.py by running the command below. Replace REPLACE_WITH_KEY_ARN in the command below with the ARN of the alias/edXExercise-key key you noted in the previous section. The string you are encrypting is Super Secret Connection String. After you replace the key ARN, the command below looks similar to: python3 encryptor.py arn:aws:kms:us-east-1:1111111111:key/d60d9611-3469-4888-8f0b-7e9a837c5b82 "Super Secret Connection String" --verbose
+python3 encryptor.py REPLACE_WITH_KEY_ARN "Super Secret Connection String" --verbose
+
+You should see an output as shown in the screenshot below. In the screenshot below, the first highlighted rectangle shows you that the SDK asks AWS KMS for a data key. In the second highlighted rectangle, you can see that the SDK is performing the encryption locally on the AWS Cloud9 instance. The third highlighted rectangle shows you the header information containing everything you need to reverse the process to decrypt, i.e., the algorithm you used and the encrypted data key. 
+
+Run the Python script encryptor.py again to encrypt a different string, Really Super Secret Connection String with Credentials. This time, the output is put into the lambdaEnvVars.json file. In the command below, replace REPLACE_WITH_KEY_ARN with the ARN of the alias/edXExercise-key key.
+python3 encryptor.py REPLACE_WITH_KEY_ARN "Really Super Secret Connection String with Credentials" --output lambdaEnvVars.json
+
+You should see similar header information and a message, Creating a json-formatted file for use as Lambda Environment Variables. This means the string has been successfully encrypted and placed in the lambdaEnvVars.json file.
+Open the /ex-kms/lambdaEnvVars.json file and observe the encrypted text and the key used for the encryption.
+6. Create and invoke a Lambda function to decrypt the string.
+In this section, you will create a Lambda function via the AWS CLI to decrypt the string in the lambdaEnvVars.json file. The code for the Lambda function is packaged in the decryptor.zip file. The decryptor.zip file contains a single file, decryptor.py. Then you will invoke the Lambda function to decrypt the string passed via the lambdaEnvVars.json file. Follow the steps below.
+
+In your AWS Cloud9 environment, open the ex-kms/decryptor.py file and explore the code for decrypting the string.
+Observe that the lambda_handler function reads the encrypted text and the key from the lambdaEnvVars.json file, and then decrypts the text using the key via the SDK.
+Run the command below to make sure you are in the correct working directory.
+cd ~/environment/ex-kms
+
+Run the command below to create the Lambda function. Replace REPLACE_WITH_LAMBDADECRYPTROLE_ARN in the command below with the ARN of the LambdaDecryptRole you copied in an earlier section.
+aws lambda create-function --function-name "decryptor" --runtime "python3.6" --role REPLACE_WITH_LAMBDADECRYPTROLE_ARN --handler "decryptor.lambda_handler" --zip-file fileb://decryptor.zip --description "lambda function with an encrypted envvar, which we'll decrypt" --cli-input-json file://lambdaEnvVars.json
+
+You should see a JSON output with information about the Lambda function and the details of the lambdaEnvVars.json file being passed as an environment variable.
+Invoke the Lambda function, decryptor, by running the command below to decrypt the string. The output of the decryptor function is dumped in to the decrypt.output file.
+aws lambda invoke --function-name decryptor decrypt.output
+
+You should see a JSON message with a 200 status code. This means the Lambda function ran successfully.
+Open the decrypt.output file by running the command below to see the decrypted staring.
+cat decrypt.output
+
+You should see the contents of the file as below.
+["Successfully decrypted: ", "Really Super Secret Connection String with Credentials"]
+
+This means the string that you encrypted in an earlier section has been successfully decrypted by the Lambda function.
+In the AWS Management Console, click Services, then click CloudWatch to open the AWS Lambda dashboard.
+In the left side navigation menu, click Logs.
+Click the /aws/lambda/decryptor hyperlink to view the log details for the Lambda function.
+Click the hyperlink under the Log Streams column.
+You should see the sequence of execution events of the Lambda function to decrypt the text and output the plain text value. Expand the individual expanders to see more details about each event.
+You have successfully encrypted and decrypted a string using AWS KMS.
+7. Delete the AWS KMS key.
+In the AWS Management Console, click Services, then click IAM to open the IAM dashboard.
+In the left navigation menu, click Encryption keys.
+Check the checkbox for alias/edXExercise-key.
+Click Key actions -> Schedule key deletion at the top.
+For Waiting period (in days), type 7
+Click Schedule deletion. The key will get deleted in 7 days.
+8. Delete the Lambda function.
+Go to the Lambda dashboard and select the decryptor function by clicking the radio button.
+Click Actions -> Delete.
+Click Delete on the prompt message.
+9. Delete the AWS Cloud9 environment.
+In this section, you will delete the AWS Cloud9 environment as you won't need the environment anymore. The subsequent exercises are performed in the AWS Management Console.
+Go to the Cloud9 dashboard and select the edXOptimizing environment by clicking the radio button.
+Click Delete.
+Type Delete in the textbox on the prompt message and click Delete.
